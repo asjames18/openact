@@ -1,0 +1,99 @@
+id: utilities/open-meteo-weather
+name: Open-Meteo Current Weather & Forecast
+version: 1.0.0
+description: Fetches real-time temperature, wind speed, humidity, and weather condition code for any latitude and longitude using Open-Meteo.
+category: utilities
+author: openact-core
+tags:
+  - weather
+  - forecast
+  - geospatial
+homepage: https://open-meteo.com
+rateLimit:
+  requestsPerMinute: 60
+cacheTtlSeconds: 300
+
+inputs:
+  latitude:
+    type: number
+    required: true
+    default: 42.3601
+    description: Latitude in decimal degrees (default is Cambridge/Boston, MA)
+  longitude:
+    type: number
+    required: true
+    default: -71.0942
+    description: Longitude in decimal degrees
+
+execution:
+  mode: http
+  request:
+    url: https://api.open-meteo.com/v1/forecast
+    method: GET
+    query:
+      latitude: "{{inputs.latitude}}"
+      longitude: "{{inputs.longitude}}"
+      current: "temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code"
+  http:
+    responseType: json
+    multiple: false
+    fields:
+      latitude: latitude
+      longitude: longitude
+      timezone: timezone
+      observedAt: current.time
+      temperatureCelsius: current.temperature_2m
+      humidityPercent: current.relative_humidity_2m
+      windSpeedKmh: current.wind_speed_10m
+      weatherCode: current.weather_code
+
+output:
+  type: object
+  required:
+    - latitude
+    - longitude
+    - temperatureCelsius
+  properties:
+    latitude:
+      type: number
+    longitude:
+      type: number
+    timezone:
+      type: string
+      nullable: true
+    observedAt:
+      type: string
+      nullable: true
+    temperatureCelsius:
+      type: number
+    humidityPercent:
+      type: number
+      nullable: true
+    windSpeedKmh:
+      type: number
+      nullable: true
+    weatherCode:
+      type: number
+      nullable: true
+
+tests:
+  - name: extracts Open-Meteo current weather readings
+    inputs:
+      latitude: 42.3601
+      longitude: -71.0942
+    mockResponse:
+      latitude: 42.36
+      longitude: -71.09
+      timezone: "GMT"
+      current:
+        time: "2026-10-23T12:00"
+        temperature_2m: 16.4
+        relative_humidity_2m: 62
+        wind_speed_10m: 14.2
+        weather_code: 1
+    expect:
+      hasKeys:
+        - latitude
+        - longitude
+        - temperatureCelsius
+        - windSpeedKmh

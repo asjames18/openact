@@ -1,0 +1,116 @@
+id: developer/hackernews-search
+name: Hacker News Story & Discussion Search
+version: 1.0.0
+description: Searches Hacker News stories, Ask HN, and Show HN threads via the Algolia HN JSON API with points, comment counts, and URLs.
+category: developer
+author: openact-core
+tags:
+  - hackernews
+  - news
+  - search
+  - tech
+homepage: https://news.ycombinator.com
+rateLimit:
+  requestsPerMinute: 60
+cacheTtlSeconds: 120
+
+inputs:
+  query:
+    type: string
+    required: false
+    default: "open source"
+    description: Search keywords (e.g., "open source", "Ask HN", "Rust")
+  tags:
+    type: string
+    required: false
+    default: story
+    enum:
+      - story
+      - ask_hn
+      - show_hn
+      - front_page
+    description: Filter by Hacker News post type
+  hitsPerPage:
+    type: number
+    required: false
+    default: 10
+    description: Number of stories to return
+
+execution:
+  mode: http
+  request:
+    url: https://hn.algolia.com/api/v1/search
+    method: GET
+    query:
+      query: "{{inputs.query}}"
+      tags: "{{inputs.tags}}"
+      hitsPerPage: "{{inputs.hitsPerPage}}"
+  http:
+    responseType: json
+    rootPath: hits
+    multiple: true
+    fields:
+      id: objectID
+      title: title
+      url: url
+      author: author
+      points: points
+      numComments: num_comments
+      createdAt: created_at
+      hnUrl:
+        path: objectID
+        transform:
+          - prefix: "https://news.ycombinator.com/item?id="
+
+output:
+  type: array
+  items:
+    type: object
+    required:
+      - id
+      - title
+      - hnUrl
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+        nullable: true
+      author:
+        type: string
+        nullable: true
+      points:
+        type: number
+        nullable: true
+      numComments:
+        type: number
+        nullable: true
+      createdAt:
+        type: string
+        nullable: true
+      hnUrl:
+        type: string
+
+tests:
+  - name: maps Algolia HN hits into structured story items
+    inputs:
+      query: openact
+      tags: show_hn
+    mockResponse:
+      hits:
+        - objectID: "42991001"
+          title: "Show HN: OpenAct – Turn any website into a fast deterministic API"
+          url: "https://github.com/openact/openact"
+          author: "mitbuilder"
+          points: 342
+          num_comments: 89
+          created_at: "2026-10-23T08:00:00Z"
+    expect:
+      minItems: 1
+      hasKeys:
+        - id
+        - title
+        - hnUrl
+        - points

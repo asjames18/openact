@@ -1,0 +1,90 @@
+id: developer/pypi-package
+name: PyPI Python Package Inspector
+version: 1.0.0
+description: Queries PyPI JSON API for Python package metadata, latest release version, required Python version, and documentation links.
+category: developer
+author: openact-core
+tags:
+  - pypi
+  - python
+  - packages
+homepage: https://pypi.org
+rateLimit:
+  requestsPerMinute: 60
+cacheTtlSeconds: 300
+
+inputs:
+  package:
+    type: string
+    required: true
+    default: yt-dlp
+    description: Python package name on PyPI (e.g. yt-dlp, fastapi, pydantic)
+
+execution:
+  mode: http
+  request:
+    url: https://pypi.org/pypi/{{urlencode inputs.package}}/json
+    method: GET
+  http:
+    responseType: json
+    rootPath: info
+    multiple: false
+    fields:
+      name: name
+      version: version
+      summary: summary
+      author: author
+      license: license
+      requiresPython: requires_python
+      packageUrl: package_url
+      homePage: home_page
+
+output:
+  type: object
+  required:
+    - name
+    - version
+  properties:
+    name:
+      type: string
+    version:
+      type: string
+    summary:
+      type: string
+      nullable: true
+    author:
+      type: string
+      nullable: true
+    license:
+      type: string
+      nullable: true
+    requiresPython:
+      type: string
+      nullable: true
+    packageUrl:
+      type: string
+      nullable: true
+    homePage:
+      type: string
+      nullable: true
+
+tests:
+  - name: extracts PyPI package info block
+    inputs:
+      package: yt-dlp
+    mockResponse:
+      info:
+        name: yt-dlp
+        version: "2026.09.01"
+        summary: "A feature-rich command-line audio/video downloader"
+        author: "yt-dlp contributors"
+        license: Unlicense
+        requires_python: ">=3.9"
+        package_url: "https://pypi.org/project/yt-dlp/"
+        home_page: "https://github.com/yt-dlp/yt-dlp"
+    expect:
+      hasKeys:
+        - name
+        - version
+        - summary
+        - requiresPython

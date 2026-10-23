@@ -1,0 +1,70 @@
+id: utilities/exchange-rates
+name: Global Currency Exchange Rates
+version: 1.0.0
+description: Retrieves latest foreign exchange rates for any base currency (USD, EUR, GBP, JPY, etc.) with optional TypeScript hook enrichment.
+category: utilities
+author: openact-core
+tags:
+  - finance
+  - currency
+  - exchange-rates
+homepage: https://www.exchangerate-api.com
+rateLimit:
+  requestsPerMinute: 60
+cacheTtlSeconds: 900
+
+inputs:
+  base:
+    type: string
+    required: false
+    default: USD
+    description: Three-letter ISO 4217 currency code (e.g. USD, EUR, GBP, CAD, JPY)
+
+execution:
+  mode: http
+  request:
+    url: https://open.er-api.com/v6/latest/{{uppercase inputs.base}}
+    method: GET
+  http:
+    responseType: json
+    multiple: false
+    fields:
+      baseCurrency: base_code
+      lastUpdatedUtc: time_last_update_utc
+      rates: rates
+
+output:
+  type: object
+  required:
+    - baseCurrency
+    - rates
+  properties:
+    baseCurrency:
+      type: string
+    lastUpdatedUtc:
+      type: string
+      nullable: true
+    rates:
+      type: object
+    majorPairs:
+      type: object
+      nullable: true
+
+tests:
+  - name: extracts currency exchange rates and computes major pairs
+    inputs:
+      base: USD
+    mockResponse:
+      base_code: USD
+      time_last_update_utc: "Fri, 23 Oct 2026 00:00:01 +0000"
+      rates:
+        USD: 1
+        EUR: 0.92
+        GBP: 0.78
+        JPY: 149.5
+        CAD: 1.36
+    expect:
+      hasKeys:
+        - baseCurrency
+        - rates
+        - majorPairs

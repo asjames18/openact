@@ -1,0 +1,96 @@
+id: developer/npm-package
+name: NPM Package Metadata & Latest Release
+version: 1.0.0
+description: Retrieves package metadata, latest version, license, homepage, and repository info from the official NPM Registry.
+category: developer
+author: openact-core
+tags:
+  - npm
+  - javascript
+  - typescript
+  - packages
+homepage: https://www.npmjs.com
+rateLimit:
+  requestsPerMinute: 60
+cacheTtlSeconds: 300
+
+inputs:
+  package:
+    type: string
+    required: true
+    default: zod
+    description: NPM package name (e.g. zod, hono, playwright)
+
+execution:
+  mode: http
+  request:
+    url: https://registry.npmjs.org/{{urlencode inputs.package}}/latest
+    method: GET
+  http:
+    responseType: json
+    multiple: false
+    fields:
+      name: name
+      version: version
+      description: description
+      license: license
+      homepage: homepage
+      repositoryUrl:
+        path: repository.url
+        transform:
+          - replace:
+              from: "^git\\+"
+              to: ""
+          - replace:
+              from: "\\.git$"
+              to: ""
+      types:
+        path: types
+        default: null
+
+output:
+  type: object
+  required:
+    - name
+    - version
+  properties:
+    name:
+      type: string
+    version:
+      type: string
+    description:
+      type: string
+      nullable: true
+    license:
+      type: string
+      nullable: true
+    homepage:
+      type: string
+      nullable: true
+    repositoryUrl:
+      type: string
+      nullable: true
+    types:
+      type: string
+      nullable: true
+
+tests:
+  - name: extracts npm package metadata cleanly
+    inputs:
+      package: zod
+    mockResponse:
+      name: zod
+      version: "3.24.2"
+      description: "TypeScript-first schema declaration and validation library"
+      license: MIT
+      homepage: "https://zod.dev"
+      repository:
+        type: git
+        url: "git+https://github.com/colinhacks/zod.git"
+      types: "./index.d.ts"
+    expect:
+      hasKeys:
+        - name
+        - version
+        - license
+        - repositoryUrl

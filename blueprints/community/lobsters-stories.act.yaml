@@ -1,0 +1,99 @@
+id: community/lobsters-stories
+name: Lobste.rs Computing & Tech Stories
+version: 1.0.0
+description: Fetches hottest or newest computing stories from Lobste.rs with scores, comment counts, submitter, and tags.
+category: community
+author: openact-core
+tags:
+  - lobsters
+  - community
+  - tech-news
+  - programming
+homepage: https://lobste.rs
+rateLimit:
+  requestsPerMinute: 30
+cacheTtlSeconds: 180
+
+inputs:
+  feed:
+    type: string
+    required: false
+    default: hottest
+    enum:
+      - hottest
+      - newest
+    description: Lobste.rs feed type (hottest or newest)
+
+execution:
+  mode: http
+  request:
+    url: https://lobste.rs/{{inputs.feed}}.json
+    method: GET
+  http:
+    responseType: json
+    multiple: true
+    limit: 15
+    fields:
+      shortId: short_id
+      title: title
+      url: url
+      score: score
+      commentCount: comment_count
+      submitter: submitter_user
+      tags: tags
+      commentsUrl: comments_url
+      createdAt: created_at
+
+output:
+  type: array
+  items:
+    type: object
+    required:
+      - shortId
+      - title
+      - commentsUrl
+    properties:
+      shortId:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+        nullable: true
+      score:
+        type: number
+      commentCount:
+        type: number
+      submitter:
+        type: string
+        nullable: true
+      tags:
+        type: array
+      commentsUrl:
+        type: string
+      createdAt:
+        type: string
+        nullable: true
+
+tests:
+  - name: extracts Lobste.rs stories list
+    inputs:
+      feed: hottest
+    mockResponse:
+      - short_id: "xsz9sc"
+        title: "Deterministic Web APIs Without Browser Bloat"
+        url: "https://example.com/post"
+        score: 68
+        comment_count: 32
+        submitter_user: "nick4"
+        tags:
+          - programming
+        comments_url: "https://lobste.rs/s/xsz9sc"
+        created_at: "2026-10-22T15:09:22.732-05:00"
+    expect:
+      minItems: 1
+      hasKeys:
+        - shortId
+        - title
+        - score
+        - commentsUrl

@@ -1,0 +1,78 @@
+id: knowledge/webpage-metadata
+name: Universal Webpage Metadata & OpenGraph Extractor
+version: 1.0.0
+description: Extracts structured page title, description, canonical link, OpenGraph tags, and Twitter Card metadata from any web URL.
+category: knowledge
+author: openact-core
+tags:
+  - metadata
+  - opengraph
+  - seo
+  - html
+rateLimit:
+  requestsPerMinute: 60
+cacheTtlSeconds: 300
+
+inputs:
+  url:
+    type: string
+    required: true
+    default: https://news.ycombinator.com
+    description: Full HTTP/HTTPS URL of the webpage to inspect
+
+execution:
+  mode: extract
+  request:
+    url: "{{inputs.url}}"
+    method: GET
+  extract:
+    strategy: meta
+    multiple: false
+    fields:
+      title: title
+      description: description
+      canonical: canonical
+      og: og
+      twitter: twitter
+
+output:
+  type: object
+  properties:
+    title:
+      type: string
+      nullable: true
+    description:
+      type: string
+      nullable: true
+    canonical:
+      type: string
+      nullable: true
+    og:
+      type: object
+      nullable: true
+    twitter:
+      type: object
+      nullable: true
+
+tests:
+  - name: extracts OpenGraph and HTML metadata tags
+    inputs:
+      url: https://example.com
+    mockResponse: |
+      <!doctype html>
+      <html>
+        <head>
+          <title>Example Domain</title>
+          <meta name="description" content="Example domain for illustrative documentation." />
+          <link rel="canonical" href="https://example.com/" />
+          <meta property="og:title" content="Example OG Title" />
+          <meta property="og:type" content="website" />
+        </head>
+        <body><h1>Example Domain</h1></body>
+      </html>
+    expect:
+      hasKeys:
+        - title
+        - description
+        - canonical
+        - og

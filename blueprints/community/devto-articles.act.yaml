@@ -1,0 +1,107 @@
+id: community/devto-articles
+name: DEV Community Articles & Tutorials Feed
+version: 1.0.0
+description: Fetches top developer articles and tutorials from DEV.to by tag with reactions, comment counts, reading time, and author.
+category: community
+author: openact-core
+tags:
+  - devto
+  - community
+  - articles
+  - programming
+homepage: https://dev.to
+rateLimit:
+  requestsPerMinute: 60
+cacheTtlSeconds: 180
+
+inputs:
+  tag:
+    type: string
+    required: false
+    default: opensource
+    description: Topic tag (e.g. opensource, typescript, webdev, ai, rust)
+  perPage:
+    type: number
+    required: false
+    default: 10
+    description: Number of articles to fetch
+
+execution:
+  mode: http
+  request:
+    url: https://dev.to/api/articles
+    method: GET
+    query:
+      tag: "{{inputs.tag}}"
+      per_page: "{{inputs.perPage}}"
+  http:
+    responseType: json
+    multiple: true
+    fields:
+      id: id
+      title: title
+      description: description
+      url: url
+      author: user.username
+      reactions: public_reactions_count
+      comments: comments_count
+      readingTimeMinutes: reading_time_minutes
+      publishedAt: published_at
+
+output:
+  type: array
+  items:
+    type: object
+    required:
+      - id
+      - title
+      - url
+    properties:
+      id:
+        type: number
+      title:
+        type: string
+      description:
+        type: string
+        nullable: true
+      url:
+        type: string
+      author:
+        type: string
+        nullable: true
+      reactions:
+        type: number
+        nullable: true
+      comments:
+        type: number
+        nullable: true
+      readingTimeMinutes:
+        type: number
+        nullable: true
+      publishedAt:
+        type: string
+        nullable: true
+
+tests:
+  - name: extracts DEV.to articles feed
+    inputs:
+      tag: opensource
+      perPage: 5
+    mockResponse:
+      - id: 4858037
+        title: "Building Open Source Tools in TypeScript"
+        description: "How declarative blueprints scale community contributions."
+        url: "https://dev.to/openact/building-open-source-tools"
+        user:
+          username: "openact"
+        public_reactions_count: 84
+        comments_count: 12
+        reading_time_minutes: 5
+        published_at: "2026-10-23T08:00:00Z"
+    expect:
+      minItems: 1
+      hasKeys:
+        - id
+        - title
+        - url
+        - reactions

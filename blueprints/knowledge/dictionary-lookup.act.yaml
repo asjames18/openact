@@ -1,0 +1,85 @@
+id: knowledge/dictionary-lookup
+name: Wiktionary English Definition & Examples Lookup
+version: 1.0.0
+description: Looks up word definitions, parts of speech, and usage examples via the Wikimedia Wiktionary REST API with automatic HTML tag stripping.
+category: knowledge
+author: openact-core
+tags:
+  - dictionary
+  - wiktionary
+  - language
+  - reference
+homepage: https://en.wiktionary.org
+rateLimit:
+  requestsPerMinute: 60
+cacheTtlSeconds: 600
+
+inputs:
+  word:
+    type: string
+    required: true
+    default: ubiquitous
+    description: English word to look up
+
+execution:
+  mode: http
+  request:
+    url: https://en.wiktionary.org/api/rest_v1/page/definition/{{urlencode inputs.word}}
+    method: GET
+  http:
+    responseType: json
+    rootPath: en[0]
+    multiple: false
+    fields:
+      word:
+        constant: "{{inputs.word}}"
+      language: language
+      partOfSpeech: partOfSpeech
+      primaryDefinition:
+        path: definitions[0].definition
+        transform:
+          - stripHtml
+          - trim
+      example:
+        path: definitions[0].examples[0]
+        transform:
+          - stripHtml
+          - trim
+        default: null
+
+output:
+  type: object
+  required:
+    - partOfSpeech
+    - primaryDefinition
+  properties:
+    word:
+      type: string
+    language:
+      type: string
+      nullable: true
+    partOfSpeech:
+      type: string
+    primaryDefinition:
+      type: string
+    example:
+      type: string
+      nullable: true
+
+tests:
+  - name: parses Wiktionary REST API nested definitions and strips HTML
+    inputs:
+      word: ubiquitous
+    mockResponse:
+      en:
+        - partOfSpeech: Adjective
+          language: English
+          definitions:
+            - definition: "Being <a href=\"/wiki/everywhere\">everywhere</a> at once: omnipresent."
+              examples:
+                - "The <b>ubiquitous</b> fog of San Francisco."
+    expect:
+      hasKeys:
+        - partOfSpeech
+        - primaryDefinition
+        - example

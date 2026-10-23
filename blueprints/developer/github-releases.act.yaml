@@ -1,0 +1,113 @@
+id: developer/github-releases
+name: GitHub Repository Releases (With Automatic HTML Fallback)
+version: 1.0.0
+description: Fetches latest releases for a GitHub repository via Tier-1 REST API and automatically cascades to Tier-2 HTML extraction if API rate limits are hit.
+category: developer
+author: openact-core
+tags:
+  - github
+  - releases
+  - fallback-demo
+homepage: https://github.com
+rateLimit:
+  requestsPerMinute: 30
+cacheTtlSeconds: 300
+
+inputs:
+  owner:
+    type: string
+    required: true
+    default: yt-dlp
+    description: GitHub repository owner or organization
+  repo:
+    type: string
+    required: true
+    default: yt-dlp
+    description: GitHub repository name
+
+execution:
+  mode: http
+  request:
+    url: https://api.github.com/repos/{{urlencode inputs.owner}}/{{urlencode inputs.repo}}/releases
+    method: GET
+    headers:
+      Accept: application/vnd.github+json
+  http:
+    responseType: json
+    multiple: true
+    limit: 10
+    fields:
+      tag: tag_name
+      name: name
+      publishedAt: published_at
+      url: html_url
+      prerelease: prerelease
+  fallback:
+    mode: extract
+    request:
+      url: https://github.com/{{urlencode inputs.owner}}/{{urlencode inputs.repo}}/releases
+      method: GET
+    extract:
+      strategy: css
+      root: section
+      multiple: true
+      limit: 10
+      fields:
+        tag:
+          selector: a.Link--primary
+          transform:
+            - trim
+        name:
+          selector: a.Link--primary
+          transform:
+            - trim
+        publishedAt:
+          selector: relative-time
+          attribute: datetime
+        url:
+          selector: a.Link--primary
+          attribute: href
+          transform:
+            - prefix: https://github.com
+        prerelease:
+          constant: false
+
+output:
+  type: array
+  items:
+    type: object
+    required:
+      - tag
+    properties:
+      tag:
+        type: string
+      name:
+        type: string
+        nullable: true
+      publishedAt:
+        type: string
+        nullable: true
+      url:
+        type: string
+        nullable: true
+      prerelease:
+        type: boolean
+        nullable: true
+
+tests:
+  - name: extracts GitHub releases from JSON API response
+    inputs:
+      owner: yt-dlp
+      repo: yt-dlp
+    mockResponse:
+      - tag_name: "2026.10.01"
+        name: "yt-dlp 2026.10.01"
+        published_at: "2026-10-01T00:00:00Z"
+        html_url: "https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.01"
+        prerelease: false
+    expect:
+      minItems: 1
+      hasKeys:
+        - tag
+        - name
+        - url

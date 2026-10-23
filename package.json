@@ -1,0 +1,53 @@
+{
+  "name": "openact",
+  "version": "0.1.0",
+  "description": "The yt-dlp for turning any website or portal into a fast, deterministic REST API, CLI command, and AI Agent (MCP) tool.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "openact": "./dist/cli/main.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli/main.ts",
+    "serve": "tsx src/cli/main.ts serve",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate": "tsx src/cli/main.ts validate"
+  },
+  "keywords": [
+    "openact",
+    "web-to-api",
+    "scraper",
+    "playwright",
+    "mcp",
+    "model-context-protocol",
+    "openapi",
+    "automation",
+    "blueprint",
+    "deterministic-api"
+  ],
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "cheerio": "^1.0.0",
+    "commander": "^13.1.0",
+    "hono": "^4.7.2",
+    "playwright": "^1.50.0",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.6"
+  }
+}

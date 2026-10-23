@@ -1,0 +1,82 @@
+id: knowledge/wikipedia-summary
+name: Wikipedia Article Summary & Metadata
+version: 1.0.0
+description: Retrieves a structured summary, description, thumbnail image, and canonical URL for any Wikipedia topic via Wikimedia REST API.
+category: knowledge
+author: openact-core
+tags:
+  - wikipedia
+  - encyclopedia
+  - knowledge
+homepage: https://en.wikipedia.org
+rateLimit:
+  requestsPerMinute: 100
+cacheTtlSeconds: 600
+
+inputs:
+  topic:
+    type: string
+    required: true
+    default: Open-source_software
+    description: Wikipedia article title or slug (e.g. Open-source_software, Rust_(programming_language))
+
+execution:
+  mode: http
+  request:
+    url: https://en.wikipedia.org/api/rest_v1/page/summary/{{urlencode inputs.topic}}
+    method: GET
+  http:
+    responseType: json
+    multiple: false
+    fields:
+      title: title
+      shortDescription: description
+      extract: extract
+      pageUrl: content_urls.desktop.page
+      thumbnailUrl:
+        path: thumbnail.source
+        default: null
+      lastModified: timestamp
+
+output:
+  type: object
+  required:
+    - title
+    - extract
+  properties:
+    title:
+      type: string
+    shortDescription:
+      type: string
+      nullable: true
+    extract:
+      type: string
+    pageUrl:
+      type: string
+      nullable: true
+    thumbnailUrl:
+      type: string
+      nullable: true
+    lastModified:
+      type: string
+      nullable: true
+
+tests:
+  - name: extracts Wikipedia summary fields
+    inputs:
+      topic: Open-source_software
+    mockResponse:
+      title: "Open-source software"
+      description: "Computer software distributed under a license that grants users the right to study and change the source code"
+      extract: "Open-source software (OSS) is computer software that is released under a license in which the copyright holder grants users the rights to use, study, change, and distribute the software and its source code to anyone and for any purpose."
+      content_urls:
+        desktop:
+          page: "https://en.wikipedia.org/wiki/Open-source_software"
+      thumbnail:
+        source: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Opensource.svg/320px-Opensource.svg.png"
+      timestamp: "2026-10-01T12:00:00Z"
+    expect:
+      hasKeys:
+        - title
+        - extract
+        - pageUrl

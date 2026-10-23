@@ -1,0 +1,137 @@
+id: developer/github-trending
+name: GitHub Trending Repositories
+version: 1.0.0
+description: Extracts trending open-source repositories from GitHub by programming language and time window using fast Tier-2 CSS selector extraction.
+category: developer
+author: openact-core
+tags:
+  - github
+  - trending
+  - open-source
+  - repositories
+homepage: https://github.com/trending
+rateLimit:
+  requestsPerMinute: 30
+cacheTtlSeconds: 300
+
+inputs:
+  language:
+    type: string
+    required: false
+    default: ""
+    description: Optional programming language slug (e.g. typescript, python, rust, go)
+  since:
+    type: string
+    required: false
+    default: daily
+    enum:
+      - daily
+      - weekly
+      - monthly
+    description: Time range for trending repositories
+
+execution:
+  mode: extract
+  request:
+    url: https://github.com/trending/{{urlencode inputs.language}}
+    method: GET
+    query:
+      since: "{{inputs.since}}"
+  extract:
+    strategy: css
+    root: article.Box-row
+    multiple: true
+    limit: 25
+    fields:
+      repo:
+        selector: h2 a
+        attribute: href
+        transform:
+          - trim
+          - stripLeadingSlash
+      url:
+        selector: h2 a
+        attribute: href
+        transform:
+          - trim
+          - prefix: https://github.com
+      description:
+        selector: p
+        transform:
+          - trim
+          - collapseWhitespace
+      language:
+        selector: "[itemprop='programmingLanguage']"
+        transform:
+          - trim
+      totalStars:
+        selector: "a[href$='/stargazers']"
+        transform:
+          - trim
+          - extractNumber
+      starsInPeriod:
+        selector: span.d-inline-block.float-sm-right
+        transform:
+          - trim
+          - extractNumber
+
+output:
+  type: array
+  description: List of trending GitHub repositories
+  items:
+    type: object
+    required:
+      - repo
+      - url
+    properties:
+      repo:
+        type: string
+      url:
+        type: string
+      description:
+        type: string
+        nullable: true
+      language:
+        type: string
+        nullable: true
+      totalStars:
+        type: number
+        nullable: true
+      starsInPeriod:
+        type: number
+        nullable: true
+
+tests:
+  - name: extracts trending repositories from GitHub HTML structure
+    inputs:
+      language: typescript
+      since: daily
+    mockResponse: |
+      <html><body>
+        <article class="Box-row">
+          <h2 class="h3 lh-condensed"><a href="/openact/openact">openact / openact</a></h2>
+          <p class="col-9 color-fg-muted my-1 pr-4">Turn any website into a deterministic API and MCP tool.</p>
+          <div>
+            <span itemprop="programmingLanguage">TypeScript</span>
+            <a href="/openact/openact/stargazers">4,210</a>
+            <span class="d-inline-block float-sm-right">642 stars today</span>
+          </div>
+        </article>
+        <article class="Box-row">
+          <h2 class="h3 lh-condensed"><a href="/yt-dlp/yt-dlp">yt-dlp / yt-dlp</a></h2>
+          <p class="col-9 color-fg-muted my-1 pr-4">A feature-rich command-line audio/video downloader.</p>
+          <div>
+            <span itemprop="programmingLanguage">Python</span>
+            <a href="/yt-dlp/yt-dlp/stargazers">105,000</a>
+            <span class="d-inline-block float-sm-right">310 stars today</span>
+          </div>
+        </article>
+      </body></html>
+    expect:
+      minItems: 2
+      hasKeys:
+        - repo
+        - url
+        - language
+        - totalStars
+        - starsInPeriod
